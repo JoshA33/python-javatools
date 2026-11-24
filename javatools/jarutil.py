@@ -30,7 +30,7 @@ import os
 import sys
 
 from shutil import copyfile
-from tempfile import NamedTemporaryFile
+import tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from .crypto import (
@@ -203,21 +203,28 @@ def sign(jar_file, cert_file, key_file, key_alias,
 
     # We might just add new entries to the original JAR, but jarsigner puts
     # all META-INF/ to the beginning of the archive. Let's do the same.
-    with NamedTemporaryFile() as new_jar_file:
-        new_jar = ZipFile(new_jar_file, "w", ZIP_DEFLATED)
-        new_jar.writestr("META-INF/MANIFEST.MF", mf.get_data())
-        new_jar.writestr("META-INF/%s.SF" % key_alias, sf.get_data())
-        new_jar.writestr("META-INF/%s.%s" % (key_alias, sig_block_extension),
-                         sigdata)
-        jar = ZipFile(jar_file, "a")
-        for entry in jar.namelist():
-            # TODO: In Py2, namelist() can be of type unicode
-            if not entry.upper() == "META-INF/MANIFEST.MF":
-                new_jar.writestr(entry, jar.read(entry))
+    # NamedTemporaryFile remains open while its name is used. Windows does not
+    # allow another handle to open that file for writing, so close the initial
+    # descriptor before passing the path to ZipFile.
+    fd, new_jar_path = tempfile.mkstemp(suffix=".jar")
+    os.close(fd)
+    try:
+        with ZipFile(new_jar_path, "w", ZIP_DEFLATED) as new_jar:
+            new_jar.writestr("META-INF/MANIFEST.MF", mf.get_data())
+            new_jar.writestr("META-INF/%s.SF" % key_alias, sf.get_data())
+            new_jar.writestr(
+                "META-INF/%s.%s" % (key_alias, sig_block_extension), sigdata)
+            # Close the source archive before replacing it; Windows prevents
+            # copying over an archive while it is still open.
+            with ZipFile(jar_file, "r") as jar:
+                for entry in jar.namelist():
+                    # TODO: In Py2, namelist() can be of type unicode
+                    if entry.upper() != "META-INF/MANIFEST.MF":
+                        new_jar.writestr(entry, jar.read(entry))
 
-        new_jar.close()
-        new_jar_file.flush()
-        copyfile(new_jar_file.name, jar_file if output is None else output)
+        copyfile(new_jar_path, jar_file if output is None else output)
+    finally:
+        os.unlink(new_jar_path)
 
 
 def create_jar(jar_file, entries):
