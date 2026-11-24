@@ -21,7 +21,7 @@ Utilities for discovering entry deltas in a pair of zip files.
 """
 
 
-from os import walk
+from os import sep, walk
 from os.path import getsize, isdir, isfile, islink, join, relpath
 from six import BytesIO
 from six.moves import zip_longest
@@ -232,7 +232,7 @@ def _collect_infos(dirname):
     for r, _ds, fs in walk(dirname):
         if not islink(r) and r != dirname:
             i = ZipInfo()
-            i.filename = join(relpath(r, dirname), "")
+            i.filename = relpath(r, dirname).replace(sep, "/") + "/"
             i.file_size = 0
             i.compress_size = 0
             i.CRC = 0
@@ -240,7 +240,7 @@ def _collect_infos(dirname):
 
         for f in fs:
             df = join(r, f)
-            relfn = relpath(join(r, f), dirname)
+            relfn = relpath(join(r, f), dirname).replace(sep, "/")
 
             if islink(df):
                 pass
