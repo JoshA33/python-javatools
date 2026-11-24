@@ -30,16 +30,15 @@ heck, just fork it!
 * [Cheetah3] is used in the generation of HTML reports
 * [M2Crypto] (optional) is used for cryptographic operations
 
-In addition, the following tools are used in building and testing the
-project.
+For development and testing, the project also uses the following
+tools. GNU Make is optional and is not required to install the package.
 
 * [Tox]
 * [GNU Make]
 * [Flake8]
 
-All of these packages are available in most linux distributions
-(eg. Fedora), and for OSX via [MacPorts] and [HomeBrew], or available
-directly from pip.
+These packages are available in most Linux distributions (eg. Fedora),
+for OSX via [MacPorts] and [HomeBrew], and directly from pip.
 
 M2Crypto can be difficult on some platforms, and so is set as an
 optional dependency. If an execution path attempts to perform an
@@ -77,6 +76,14 @@ to install, run:
 
 ```python -m pip install . --user```
 
+On Windows, run the equivalent command in PowerShell:
+
+```powershell
+py -m pip install .
+```
+
+GNU Make is not needed for installation. Python's `py` launcher can be
+used in place of `python` when multiple Python versions are installed.
 
 ### Testing
 
